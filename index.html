@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Painel de expedição da Fina Estampa.">
+  <meta name="theme-color" content="#0b0b0c">
+  <link rel="icon" type="image/png" href="assets/img/favicon.png">
+  <link rel="apple-touch-icon" href="assets/img/favicon.png">
+  <link rel="stylesheet" href="css/style.css">
+  <title>Painel de Expedição | Fina Estampa</title>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a class="brand" href="#" aria-label="Fina Estampa">
+        <img src="assets/img/favicon.png" alt="" width="48" height="48">
+        <span>
+          <strong>FINA ESTAMPA</strong>
+          <small>CONTROLE DE EXPEDIÇÃO</small>
+        </span>
+      </a>
+      <div class="header-actions">
+        <span class="update-status"><i></i><span id="lastUpdate">Dados atualizados</span></span>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <section class="page-title">
+      <div>
+        <span class="eyebrow">VISÃO GERAL</span>
+        <h1>Painel de Expedição</h1>
+        <p>Saídas, volumes e destinos de 2024 a 2026.</p>
+      </div>
+      <div class="database-badge">
+        <span>BASE ANALISADA</span>
+        <strong id="databaseTrips">0 saídas</strong>
+        <small id="databaseVolumes">0 volumes</small>
+      </div>
+    </section>
+
+    <section class="filter-bar" aria-label="Filtros">
+      <div class="filter-title">
+        <div>
+          <strong>Filtrar dados</strong>
+          <span>Os indicadores abaixo mudam automaticamente.</span>
+        </div>
+        <button class="filter-toggle" id="filterToggle" type="button" aria-expanded="false" aria-controls="filterControls">
+          <span>Filtros</span>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+      </div>
+      <div class="filter-controls" id="filterControls">
+        <label class="field">
+          <span>Mês</span>
+          <select id="monthFilter">
+            <option value="all">Ano inteiro</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Destino</span>
+          <select id="destinationFilter">
+            <option value="all">Todos os destinos</option>
+          </select>
+        </label>
+        <fieldset class="field year-field">
+          <legend>Anos</legend>
+          <div class="year-options" id="yearOptions"></div>
+        </fieldset>
+        <label class="fair-option" title="Limita os anos anteriores ao mesmo dia alcançado por 2026.">
+          <input type="checkbox" id="fairComparison">
+          <span class="check-box"></span>
+          <span>Mesmo período<small id="fairComparisonHint">Até o dia atual da base</small></span>
+        </label>
+        <button class="reset-button" id="resetFilters" type="button">Limpar</button>
+      </div>
+      <div class="active-filters" id="activeFilters" aria-live="polite"></div>
+    </section>
+
+    <section class="notice" id="coverageNotice" aria-live="polite"></section>
+
+    <section class="year-comparison" aria-labelledby="yearComparisonTitle">
+      <div class="comparison-heading">
+        <div>
+          <span class="section-label">NÚMEROS POR ANO</span>
+          <h2 id="yearComparisonTitle">Junho de 2024, 2025 e 2026</h2>
+          <p>Cada cartão mostra somente o mês e o ano indicados, sem somar períodos diferentes.</p>
+        </div>
+        <div class="comparison-guide">
+          <span><i class="guide-cars"></i> Carros</span>
+          <span><i class="guide-volumes"></i> Volumes</span>
+        </div>
+      </div>
+      <div class="year-summary-grid" id="yearSummary"></div>
+    </section>
+
+    <section class="primary-grid">
+      <article class="panel comparison-panel">
+        <div class="panel-header">
+          <div>
+            <span class="section-label">COMPARAÇÃO DIRETA</span>
+            <h2 id="comparisonTitle">Junho por ano</h2>
+            <p>O gráfico repete os números acima para facilitar a comparação visual.</p>
+          </div>
+          <div class="metric-toggle" aria-label="Métrica do gráfico">
+            <button class="active" type="button" data-metric="trips">Carros</button>
+            <button type="button" data-metric="volumes">Volumes</button>
+          </div>
+        </div>
+        <div class="chart-wrap main-chart">
+          <canvas id="comparisonChart" role="img" aria-label="Comparação anual"></canvas>
+        </div>
+        <div class="chart-legend" id="comparisonLegend"></div>
+      </article>
+
+      <aside class="panel ranking-panel">
+        <div class="panel-header">
+          <div>
+            <span class="section-label">DESTINOS</span>
+            <h2>Mais volumes</h2>
+            <p>Ranking no período filtrado.</p>
+          </div>
+        </div>
+        <div class="ranking-list" id="destinationRanking"></div>
+      </aside>
+    </section>
+
+    <section class="secondary-grid">
+      <article class="panel trend-panel">
+        <div class="panel-header">
+          <div>
+            <span class="section-label">HISTÓRICO</span>
+            <h2>Saídas por mês</h2>
+            <p>Evolução da quantidade de carros expedidos.</p>
+          </div>
+        </div>
+        <div class="chart-wrap trend-chart">
+          <canvas id="trendChart" role="img" aria-label="Saídas mensais"></canvas>
+        </div>
+        <div class="chart-legend" id="trendLegend"></div>
+      </article>
+
+      <aside class="panel insight-panel">
+        <div class="panel-header">
+          <div>
+            <span class="section-label">LEITURA OPERACIONAL</span>
+            <h2>2026 em outro ritmo</h2>
+            <p>Maio e junho comparados aos mesmos períodos de 2024 e 2025.</p>
+          </div>
+        </div>
+        <div class="insight-list" id="insightList"></div>
+      </aside>
+    </section>
+
+    <section class="panel calendar-panel">
+      <div class="panel-header calendar-header">
+        <div>
+          <span class="section-label">AGENDA DE CARREGAMENTOS</span>
+          <h2>Calendário da expedição</h2>
+          <p>Navegue pelos meses para ver loja e volumes carregados em cada dia.</p>
+        </div>
+        <div class="calendar-controls">
+          <button type="button" id="calendarPrev" aria-label="Mês anterior">‹</button>
+          <strong id="calendarTitle"></strong>
+          <button type="button" id="calendarNext" aria-label="Próximo mês">›</button>
+          <button class="calendar-today" type="button" id="calendarToday">Mês atual</button>
+        </div>
+      </div>
+      <div class="calendar-summary" id="calendarSummary"></div>
+      <div class="calendar-scroll">
+        <div class="calendar-weekdays" aria-hidden="true">
+          <span>Dom</span><span>Seg</span><span>Ter</span><span>Qua</span><span>Qui</span><span>Sex</span><span>Sáb</span>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+      </div>
+      <div class="calendar-list" id="calendarList"></div>
+    </section>
+
+  </main>
+
+  <footer>
+    <div class="footer-inner">
+      <div class="footer-brand">
+        <img src="assets/img/favicon.png" alt="" width="42" height="42">
+        <span><strong>FINA ESTAMPA</strong><small>PAINEL DE EXPEDIÇÃO</small></span>
+      </div>
+      <p>Responsável pela Expedição<br><strong>Bruno Carvalho</strong></p>
+      <p class="footer-update">Dados de 2024 a 2026<br><span id="footerUpdate"></span></p>
+    </div>
+  </footer>
+
+  <script src="data/expeditions.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
