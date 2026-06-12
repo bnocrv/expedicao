@@ -1,0 +1,134 @@
+{
+  "rawRecordCount": 456,
+  "uniqueRecordCount": 455,
+  "duplicateRowsRemoved": [
+    {
+      "sheet": "2026",
+      "row": 82
+    }
+  ],
+  "totalVolumes": 68354,
+  "analysisRecordCount": 452,
+  "analysisTotalVolumes": 67373,
+  "analysisExcludedPeriods": [
+    "2024-08",
+    "2024-09"
+  ],
+  "latestDate": "2026-06-12",
+  "monthlyTotals": {
+    "2024-04": {
+      "trips": 10,
+      "volumes": 2419
+    },
+    "2024-05": {
+      "trips": 9,
+      "volumes": 2160
+    },
+    "2024-06": {
+      "trips": 10,
+      "volumes": 2565
+    },
+    "2024-07": {
+      "trips": 9,
+      "volumes": 1953
+    },
+    "2024-08": {
+      "trips": 3,
+      "volumes": 981
+    },
+    "2024-10": {
+      "trips": 10,
+      "volumes": 2459
+    },
+    "2024-11": {
+      "trips": 10,
+      "volumes": 3419
+    },
+    "2024-12": {
+      "trips": 16,
+      "volumes": 3296
+    },
+    "2025-01": {
+      "trips": 8,
+      "volumes": 2191
+    },
+    "2025-02": {
+      "trips": 12,
+      "volumes": 3002
+    },
+    "2025-03": {
+      "trips": 5,
+      "volumes": 1027
+    },
+    "2025-04": {
+      "trips": 10,
+      "volumes": 2610
+    },
+    "2025-05": {
+      "trips": 15,
+      "volumes": 2752
+    },
+    "2025-06": {
+      "trips": 21,
+      "volumes": 2443
+    },
+    "2025-07": {
+      "trips": 23,
+      "volumes": 2318
+    },
+    "2025-08": {
+      "trips": 14,
+      "volumes": 1479
+    },
+    "2025-09": {
+      "trips": 25,
+      "volumes": 3341
+    },
+    "2025-10": {
+      "trips": 27,
+      "volumes": 2817
+    },
+    "2025-11": {
+      "trips": 29,
+      "volumes": 3195
+    },
+    "2025-12": {
+      "trips": 39,
+      "volumes": 4268
+    },
+    "2026-01": {
+      "trips": 24,
+      "volumes": 2170
+    },
+    "2026-02": {
+      "trips": 19,
+      "volumes": 1937
+    },
+    "2026-03": {
+      "trips": 21,
+      "volumes": 2847
+    },
+    "2026-04": {
+      "trips": 27,
+      "volumes": 3781
+    },
+    "2026-05": {
+      "trips": 33,
+      "volumes": 4481
+    },
+    "2026-06": {
+      "trips": 26,
+      "volumes": 2443
+    }
+  },
+  "manualStopMappings": [
+    {
+      "sheet": "2025",
+      "row": 124
+    },
+    {
+      "sheet": "2025",
+      "row": 147
+    }
+  ]
+}

@@ -181,6 +181,14 @@ main { padding: 40px 0 64px; }
   letter-spacing: .1em;
 }
 
+.database-badge em {
+  display: block;
+  margin-top: 5px;
+  color: #8a8a90;
+  font-size: 8px;
+  font-style: normal;
+}
+
 .database-badge strong {
   display: block;
   margin: 4px 0;

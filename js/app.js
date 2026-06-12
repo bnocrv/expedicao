@@ -61,9 +61,16 @@
 
     const latestDate = parseDate(latestRecord.date);
     const formatted = new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "long", year: "numeric", timeZone: "UTC" }).format(latestDate);
-    const databaseVolumes = records.reduce((sum, record) => sum + record.volumes, 0);
-    document.querySelector("#databaseTrips").textContent = `${number.format(records.length)} saídas`;
-    document.querySelector("#databaseVolumes").textContent = `${number.format(databaseVolumes)} volumes`;
+    const analysisRecords = records.filter(record => !isTransitionPeriod(record.year, record.month));
+    const analysisVolumes = analysisRecords.reduce((sum, record) => sum + record.volumes, 0);
+    const analysisRecordCount = source.metadata.analysisRecordCount ?? analysisRecords.length;
+    const analysisTotalVolumes = source.metadata.analysisTotalVolumes ?? analysisVolumes;
+    const duplicateCount = source.metadata.audit?.duplicateRowsRemoved ?? 0;
+    document.querySelector("#databaseTrips").textContent = `${number.format(analysisRecordCount)} saídas`;
+    document.querySelector("#databaseVolumes").textContent = `${number.format(analysisTotalVolumes)} volumes`;
+    document.querySelector("#databaseAudit").textContent =
+      `${number.format(records.length)} linhas únicas importadas` +
+      (duplicateCount ? ` • ${duplicateCount} duplicidade removida` : "");
     document.querySelector("#lastUpdate").textContent = `Até ${formatted}`;
     document.querySelector("#footerUpdate").textContent = `Atualizado em ${formatted}`;
   }

@@ -5,6 +5,7 @@ import re
 import sys
 import unicodedata
 import xml.etree.ElementTree as ET
+from collections import defaultdict
 from datetime import datetime, timedelta
 from pathlib import Path
 from zipfile import ZipFile
@@ -26,6 +27,13 @@ MONTH_NAMES = [
     "novembro",
     "dezembro",
 ]
+
+# Rows where the spreadsheet lists more volume groups than destinations.
+# The mapping follows the transfer order recorded in the same row.
+STOP_VOLUME_OVERRIDES = {
+    ("2025", 124): [291, 331 + 119],
+    ("2025", 147): [76 + 2, 97],
+}
 
 
 def excel_date(value: str) -> str:
@@ -70,23 +78,42 @@ def extract_destinations(value: str) -> list[str]:
     return [display_name for _, display_name in sorted(matches)]
 
 
-def split_stops(destination: str, volume_text: str, total: int) -> list[dict]:
-    destinations = extract_destinations(destination)
-    volumes = [int(value) for value in re.findall(r"\d+", volume_text)]
+def parse_volume_values(volume_text: str) -> list[int]:
+    return [int(value) for value in re.findall(r"\d+", volume_text)]
 
-    if len(destinations) == len(volumes):
-        pairs = zip(destinations, volumes)
+
+def parse_volume_groups(volume_text: str) -> list[int]:
+    normalized = re.sub(r"\s+(?:e|\$)\s+", " & ", volume_text, flags=re.I)
+    groups = [group.strip() for group in normalized.split("&") if group.strip()]
+    return [sum(parse_volume_values(group)) for group in groups]
+
+
+def split_stops(
+    year: str,
+    row_number: int,
+    destination: str,
+    volume_text: str,
+    total: int,
+) -> list[dict]:
+    destinations = extract_destinations(destination)
+    grouped_volumes = STOP_VOLUME_OVERRIDES.get(
+        (year, row_number),
+        parse_volume_groups(volume_text),
+    )
+    individual_volumes = parse_volume_values(volume_text)
+
+    if len(destinations) == len(grouped_volumes):
+        pairs = zip(destinations, grouped_volumes)
+    elif len(destinations) == len(individual_volumes):
+        pairs = zip(destinations, individual_volumes)
     elif len(destinations) == 1:
         pairs = [(destinations[0], total)]
-    elif destinations:
-        distributed = total // len(destinations)
-        remainder = total % len(destinations)
-        pairs = [
-            (destination_name, distributed + (1 if index < remainder else 0))
-            for index, destination_name in enumerate(destinations)
-        ]
     else:
-        pairs = [(normalize_text(destination).title(), total)]
+        raise ValueError(
+            f"Não foi possível relacionar destinos e volumes: "
+            f"aba {year}, linha {row_number}, destino={destination!r}, "
+            f"volumes={volume_text!r}"
+        )
 
     consolidated = {}
     order = []
@@ -106,8 +133,11 @@ def cell_column(reference: str) -> str:
     return match.group() if match else ""
 
 
-def read_workbook(path: Path) -> list[dict]:
+def read_workbook(path: Path) -> tuple[list[dict], dict]:
     records = []
+    seen_fingerprints = set()
+    duplicate_rows = []
+    raw_record_count = 0
 
     with ZipFile(path) as archive:
         workbook = ET.fromstring(archive.read("xl/workbook.xml"))
@@ -147,6 +177,7 @@ def read_workbook(path: Path) -> list[dict]:
             sheet_xml = ET.fromstring(archive.read(target))
 
             for row in sheet_xml.iter(f"{{{MAIN_NS}}}row"):
+                row_number = int(row.attrib["r"])
                 values = {}
                 for cell in row.findall(f"{{{MAIN_NS}}}c"):
                     value_node = cell.find(f"{{{MAIN_NS}}}v")
@@ -168,26 +199,70 @@ def read_workbook(path: Path) -> list[dict]:
 
                 destination = values.get(destination_column, "")
                 volume_text = values.get(volume_column, "")
-                volume_values = [
-                    int(value) for value in re.findall(r"\d+", volume_text)
-                ]
+                volume_values = parse_volume_values(volume_text)
                 if not destination or not volume_values:
                     continue
 
+                raw_record_count += 1
+                fingerprint = (year, tuple(sorted(values.items())))
+                if fingerprint in seen_fingerprints:
+                    duplicate_rows.append({"sheet": year, "row": row_number})
+                    continue
+                seen_fingerprints.add(fingerprint)
+
                 total = sum(volume_values)
+                stops = split_stops(
+                    year,
+                    row_number,
+                    destination,
+                    volume_text,
+                    total,
+                )
                 records.append(
                     {
                         "date": date,
                         "destination": " + ".join(
-                            stop["destination"]
-                            for stop in split_stops(destination, volume_text, total)
+                            stop["destination"] for stop in stops
                         ),
                         "volumes": total,
-                        "stops": split_stops(destination, volume_text, total),
+                        "stops": stops,
+                        "source": {"sheet": year, "row": row_number},
                     }
                 )
 
-    return sorted(records, key=lambda record: record["date"])
+    records = sorted(records, key=lambda record: record["date"])
+    monthly = defaultdict(lambda: {"trips": 0, "volumes": 0})
+    for record in records:
+        key = record["date"][:7]
+        monthly[key]["trips"] += 1
+        monthly[key]["volumes"] += record["volumes"]
+
+    analysis_records = [
+        record
+        for record in records
+        if not (
+            record["date"].startswith("2024-08")
+            or record["date"].startswith("2024-09")
+        )
+    ]
+    audit = {
+        "rawRecordCount": raw_record_count,
+        "uniqueRecordCount": len(records),
+        "duplicateRowsRemoved": duplicate_rows,
+        "totalVolumes": sum(record["volumes"] for record in records),
+        "analysisRecordCount": len(analysis_records),
+        "analysisTotalVolumes": sum(
+            record["volumes"] for record in analysis_records
+        ),
+        "analysisExcludedPeriods": ["2024-08", "2024-09"],
+        "latestDate": max(record["date"] for record in records),
+        "monthlyTotals": dict(sorted(monthly.items())),
+        "manualStopMappings": [
+            {"sheet": sheet, "row": row}
+            for sheet, row in sorted(STOP_VOLUME_OVERRIDES)
+        ],
+    }
+    return records, audit
 
 
 def main() -> None:
@@ -196,13 +271,25 @@ def main() -> None:
 
     source = Path(sys.argv[1])
     output = Path(sys.argv[2])
-    records = read_workbook(source)
+    records, audit = read_workbook(source)
     years = sorted({record["date"][:4] for record in records})
     metadata = {
         "source": source.name,
         "generatedAt": datetime.now().astimezone().isoformat(timespec="seconds"),
         "years": years,
         "recordCount": len(records),
+        "totalVolumes": audit["totalVolumes"],
+        "analysisRecordCount": audit["analysisRecordCount"],
+        "analysisTotalVolumes": audit["analysisTotalVolumes"],
+        "latestDate": audit["latestDate"],
+        "sourceModifiedAt": datetime.fromtimestamp(
+            source.stat().st_mtime
+        ).astimezone().isoformat(timespec="seconds"),
+        "audit": {
+            "rawRecordCount": audit["rawRecordCount"],
+            "duplicateRowsRemoved": len(audit["duplicateRowsRemoved"]),
+            "analysisExcludedPeriods": audit["analysisExcludedPeriods"],
+        },
         "monthNames": MONTH_NAMES,
     }
     content = (
@@ -216,7 +303,13 @@ def main() -> None:
     )
     output.parent.mkdir(parents=True, exist_ok=True)
     output.write_text(content, encoding="utf-8")
+    audit_output = output.with_name("audit.json")
+    audit_output.write_text(
+        json.dumps(audit, ensure_ascii=False, indent=2) + "\n",
+        encoding="utf-8",
+    )
     print(f"{len(records)} registros gravados em {output}")
+    print(f"Auditoria gravada em {audit_output}")
 
 
 if __name__ == "__main__":

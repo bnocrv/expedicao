@@ -37,6 +37,8 @@ e não precisa ser publicado.
 ## Critérios
 
 - Cada linha válida da planilha representa um carro expedido.
+- Linhas completamente idênticas, incluindo número, horário e transferência,
+  são tratadas como duplicidades e entram apenas uma vez.
 - Os volumes compostos, como `91 & 129`, são somados.
 - Viagens com mais de uma loja continuam contando como um único carro.
 - Destinos combinados são separados somente no ranking por loja.
@@ -45,3 +47,14 @@ e não precisa ser publicado.
   de transição na expedição.
 - No mês atual da base, o painel inicia comparando todos os anos até o mesmo
   dia para evitar confrontar um mês parcial com meses completos.
+
+## Auditoria
+
+Cada importação gera `data/audit.json` com totais mensais, duplicidades
+removidas e linhas que exigem mapeamento explícito de volumes por loja.
+
+Para validar a base gerada:
+
+```powershell
+python .\scripts\verify_data.py .\data\expeditions.js
+```
