@@ -25,7 +25,7 @@
     month: latestRecord.month,
     destination: "all",
     years: new Set(years),
-    fair: false,
+    fair: true,
     metric: "trips",
     calendarYear: latestRecord.year,
     calendarMonth: latestRecord.month,
@@ -138,7 +138,15 @@
     document.querySelector("#yearComparisonTitle").textContent =
       state.month === "all"
         ? "Resultado de cada ano"
-        : `${period} de ${selectedYears.join(", ").replace(/, ([^,]*)$/, " e $1")}`;
+        : state.fair && Number(state.month) === latestRecord.month
+          ? `${period} até o dia ${latestRecord.day}: ${selectedYears.join(", ").replace(/, ([^,]*)$/, " e $1")}`
+          : `${period} de ${selectedYears.join(", ").replace(/, ([^,]*)$/, " e $1")}`;
+    document.querySelector("#yearComparisonDescription").textContent =
+      state.month === "all"
+        ? "Totais disponíveis em cada ano, respeitando os períodos sem base."
+        : state.fair && Number(state.month) === latestRecord.month
+          ? `Todos os anos foram limitados ao dia ${latestRecord.day} para uma comparação justa.`
+          : "Cada cartão mostra somente o mês e o ano indicados.";
 
     document.querySelector("#yearSummary").innerHTML = summary.map((item, index) => {
       const previous = summary[index - 1];
@@ -591,7 +599,10 @@
 
   function updateTitles() {
     const period = state.month === "all" ? "Ano inteiro" : monthNames[Number(state.month) - 1];
-    document.querySelector("#comparisonTitle").textContent = `${period} por ano`;
+    document.querySelector("#comparisonTitle").textContent =
+      state.fair && Number(state.month) === latestRecord.month
+        ? `${period} até o dia ${latestRecord.day} por ano`
+        : `${period} por ano`;
     document.querySelector("#fairComparisonHint").textContent = state.month === latestRecord.month ? `Limita os anos ao dia ${latestRecord.day}` : "Disponível para o mês atual da base";
     elements.fair.disabled = state.month === "all" || Number(state.month) !== latestRecord.month;
     if (elements.fair.disabled && state.fair) {
@@ -670,12 +681,12 @@
     state.month = latestRecord.month;
     state.destination = "all";
     state.years = new Set(years);
-    state.fair = false;
+    state.fair = true;
     state.calendarYear = latestRecord.year;
     state.calendarMonth = latestRecord.month;
     elements.month.value = String(state.month);
     elements.destination.value = "all";
-    elements.fair.checked = false;
+    elements.fair.checked = true;
     elements.yearOptions.querySelectorAll("input").forEach(input => input.checked = true);
     render();
   });

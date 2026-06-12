@@ -43,3 +43,5 @@ e não precisa ser publicado.
 - Motoristas e veículos entre parênteses não fazem parte do nome do destino.
 - Agosto e setembro de 2024 ficam em branco nas análises devido ao período
   de transição na expedição.
+- No mês atual da base, o painel inicia comparando todos os anos até o mesmo
+  dia para evitar confrontar um mês parcial com meses completos.
