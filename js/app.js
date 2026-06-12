@@ -25,7 +25,7 @@
     month: latestRecord.month,
     destination: "all",
     years: new Set(years),
-    fair: true,
+    fair: false,
     metric: "trips",
     calendarYear: latestRecord.year,
     calendarMonth: latestRecord.month,
@@ -142,6 +142,9 @@
       };
     });
     const period = state.month === "all" ? "Ano inteiro" : monthNames[Number(state.month) - 1];
+    const currentMonthInProgress = Number(state.month) === latestRecord.month &&
+      selectedYears.includes(latestRecord.year) &&
+      !state.fair;
     document.querySelector("#yearComparisonTitle").textContent =
       state.month === "all"
         ? "Resultado de cada ano"
@@ -153,6 +156,8 @@
         ? "Totais disponíveis em cada ano, respeitando os períodos sem base."
         : state.fair && Number(state.month) === latestRecord.month
           ? `Todos os anos foram limitados ao dia ${latestRecord.day} para uma comparação justa.`
+          : currentMonthInProgress
+            ? `${period} completo nos anos encerrados; ${latestRecord.year} contém dados até o dia ${latestRecord.day}.`
           : "Cada cartão mostra somente o mês e o ano indicados.";
 
     document.querySelector("#yearSummary").innerHTML = summary.map((item, index) => {
@@ -201,6 +206,17 @@
         : item.year === latestRecord.year && (state.month === "all" || Number(state.month) === latestRecord.month)
           ? `<span class="coverage-tag current">Até dia ${latestRecord.day}</span>`
           : "";
+      const mixedCoverage = currentMonthInProgress && item.year === latestRecord.year;
+      const tripsVariation = mixedCoverage
+        ? `<span class="variation neutral">Mês em andamento</span>`
+        : previous?.unavailable
+          ? `<span class="variation neutral">Sem base comparável</span>`
+          : variationMarkup(item.trips, previous?.trips, previous?.year);
+      const volumesVariation = mixedCoverage
+        ? `<span class="variation neutral">Mês em andamento</span>`
+        : previous?.unavailable
+          ? `<span class="variation neutral">Sem base comparável</span>`
+          : variationMarkup(item.volumes, previous?.volumes, previous?.year);
       return `
         <article class="year-card ${item.year === latestRecord.year ? "current-year" : ""}">
           <header>
@@ -214,12 +230,12 @@
             <div class="year-number cars-number">
               <span>CARROS EXPEDIDOS</span>
               <strong>${number.format(item.trips)}</strong>
-              ${previous?.unavailable ? `<span class="variation neutral">Sem base comparável</span>` : variationMarkup(item.trips, previous?.trips, previous?.year)}
+              ${tripsVariation}
             </div>
             <div class="year-number volumes-number">
               <span>VOLUMES EXPEDIDOS</span>
               <strong>${number.format(item.volumes)}</strong>
-              ${previous?.unavailable ? `<span class="variation neutral">Sem base comparável</span>` : variationMarkup(item.volumes, previous?.volumes, previous?.year)}
+              ${volumesVariation}
             </div>
           </div>
           <div class="year-card-footer">
@@ -599,7 +615,11 @@
     const messages = [];
     if (state.years.has(2024)) messages.push("Agosto e setembro de 2024 estão em branco por motivo de transição na expedição e não entram nas análises.");
     if (state.years.has(latestRecord.year) && (!selectedMonth || selectedMonth >= latestRecord.month)) messages.push(`Os dados de ${latestRecord.year} vão até ${dateFormatter.format(parseDate(latestRecord.date))}.`);
-    if (state.fair && selectedMonth === latestRecord.month) messages.push(`Comparação equivalente aplicada até o dia ${latestRecord.day}.`);
+    if (state.fair && selectedMonth === latestRecord.month) {
+      messages.push(`Comparação equivalente aplicada até o dia ${latestRecord.day}.`);
+    } else if (selectedMonth === latestRecord.month && state.years.has(latestRecord.year)) {
+      messages.push(`Os anos anteriores mostram o mês completo; ${latestRecord.year} está em andamento até o dia ${latestRecord.day}.`);
+    }
     elements.notice.textContent = messages.join(" ");
     elements.notice.classList.toggle("visible", messages.length > 0);
   }
@@ -609,7 +629,9 @@
     document.querySelector("#comparisonTitle").textContent =
       state.fair && Number(state.month) === latestRecord.month
         ? `${period} até o dia ${latestRecord.day} por ano`
-        : `${period} por ano`;
+        : Number(state.month) === latestRecord.month
+          ? `${period}: anos completos x ${latestRecord.year} até dia ${latestRecord.day}`
+          : `${period} por ano`;
     document.querySelector("#fairComparisonHint").textContent = state.month === latestRecord.month ? `Limita os anos ao dia ${latestRecord.day}` : "Disponível para o mês atual da base";
     elements.fair.disabled = state.month === "all" || Number(state.month) !== latestRecord.month;
     if (elements.fair.disabled && state.fair) {
@@ -688,12 +710,12 @@
     state.month = latestRecord.month;
     state.destination = "all";
     state.years = new Set(years);
-    state.fair = true;
+    state.fair = false;
     state.calendarYear = latestRecord.year;
     state.calendarMonth = latestRecord.month;
     elements.month.value = String(state.month);
     elements.destination.value = "all";
-    elements.fair.checked = true;
+    elements.fair.checked = false;
     elements.yearOptions.querySelectorAll("input").forEach(input => input.checked = true);
     render();
   });

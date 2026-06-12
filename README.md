@@ -45,8 +45,10 @@ e não precisa ser publicado.
 - Motoristas e veículos entre parênteses não fazem parte do nome do destino.
 - Agosto e setembro de 2024 ficam em branco nas análises devido ao período
   de transição na expedição.
-- No mês atual da base, o painel inicia comparando todos os anos até o mesmo
-  dia para evitar confrontar um mês parcial com meses completos.
+- No mês atual da base, os anos encerrados mostram o mês completo e o ano
+  corrente mostra os dados até a última data disponível.
+- A opção `Mesmo período` pode limitar todos os anos ao mesmo dia quando for
+  necessária uma comparação proporcional.
 
 ## Auditoria
 
