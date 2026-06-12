@@ -103,6 +103,20 @@
     });
   }
 
+  function visibleStops(record) {
+    return state.destination === "all"
+      ? record.stops
+      : record.stops.filter(stop => stop.destination === state.destination);
+  }
+
+  function visibleVolume(record) {
+    return visibleStops(record).reduce((sum, stop) => sum + stop.volumes, 0);
+  }
+
+  function visibleDestination(record) {
+    return visibleStops(record).map(stop => stop.destination).join(" + ");
+  }
+
   function destinationVolumes(filtered) {
     const totals = new Map();
     filtered.forEach(record => {
@@ -131,14 +145,14 @@
     const selectedYears = [...state.years].sort();
     const summary = selectedYears.map(year => {
       const yearRecords = filtered.filter(record => record.year === year);
-      const volumes = yearRecords.reduce((sum, record) => sum + record.volumes, 0);
+      const volumes = yearRecords.reduce((sum, record) => sum + visibleVolume(record), 0);
       return {
         year,
         unavailable: unavailablePeriodReason(year, state.month),
         trips: yearRecords.length,
         volumes,
         average: yearRecords.length ? volumes / yearRecords.length : 0,
-        destinations: new Set(yearRecords.flatMap(record => record.stops.map(stop => stop.destination))).size,
+        destinations: new Set(yearRecords.flatMap(record => visibleStops(record).map(stop => stop.destination))).size,
       };
     });
     const period = state.month === "all" ? "Ano inteiro" : monthNames[Number(state.month) - 1];
@@ -268,7 +282,7 @@
           ? null
           : state.metric === "trips"
             ? yearRecords.length
-            : yearRecords.reduce((sum, record) => sum + record.volumes, 0),
+            : yearRecords.reduce((sum, record) => sum + visibleVolume(record), 0),
       };
     });
     const max = Math.max(...data.map(item => item.value).filter(value => value !== null), 1);
@@ -442,7 +456,7 @@
     );
     return {
       trips: items.length,
-      volumes: items.reduce((sum, item) => sum + item.volumes, 0),
+      volumes: items.reduce((sum, item) => sum + visibleVolume(item), 0),
       days: new Set(items.map(item => item.date)).size,
     };
   }
@@ -489,7 +503,7 @@
       {
         title: `${number.format(combined[2026].volumes)} volumes no período`,
         badge: `${formatChange(change(combined[2026].volumes, combined[2025].volumes))} vs. 2025`,
-        text: `Maio e junho até o dia ${latestRecord.day} movimentaram ${number.format(combined[2025].volumes)} volumes em 2025 e ${number.format(combined[2024].volumes)} em 2024.`,
+        text: `Maio completo e junho até o dia ${latestRecord.day} movimentaram ${number.format(combined[2025].volumes)} volumes em 2025 e ${number.format(combined[2024].volumes)} em 2024.`,
       },
     ];
     document.querySelector("#insightList").innerHTML = items.slice(0, 4).map(item => `
@@ -527,7 +541,7 @@
     const lastIndex = latestRecord.year * 12 + latestRecord.month;
     document.querySelector("#calendarPrev").disabled = currentIndex <= firstIndex;
     document.querySelector("#calendarNext").disabled = currentIndex >= lastIndex;
-    const volumes = monthRecords.reduce((sum, record) => sum + record.volumes, 0);
+    const volumes = monthRecords.reduce((sum, record) => sum + visibleVolume(record), 0);
     const activeDays = recordsByDay.size;
     elements.calendarSummary.innerHTML = transition
       ? `<span><strong>Período em branco:</strong> transição na expedição</span>`
@@ -562,9 +576,9 @@
           </div>
           <div class="calendar-loads">
             ${dayRecords.map(record => `
-              <div class="calendar-load" title="${escapeHtml(record.destination)} - ${number.format(record.volumes)} volumes">
-                <strong>${escapeHtml(record.destination)}</strong>
-                <span>${number.format(record.volumes)} volumes</span>
+              <div class="calendar-load" title="${escapeHtml(visibleDestination(record))} - ${number.format(visibleVolume(record))} volumes">
+                <strong>${escapeHtml(visibleDestination(record))}</strong>
+                <span>${number.format(visibleVolume(record))} volumes</span>
               </div>`).join("")}
           </div>
         </div>`);
@@ -590,8 +604,8 @@
               <div class="calendar-list-loads">
                 ${dayRecords.map(record => `
                   <div class="calendar-list-load">
-                    <strong>${escapeHtml(record.destination)}</strong>
-                    <span>${number.format(record.volumes)} volumes</span>
+                    <strong>${escapeHtml(visibleDestination(record))}</strong>
+                    <span>${number.format(visibleVolume(record))} volumes</span>
                   </div>`).join("")}
               </div>
             </article>`;
