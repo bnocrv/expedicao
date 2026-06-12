@@ -1,15 +1,15 @@
 {
-  "rawRecordCount": 456,
-  "uniqueRecordCount": 455,
+  "rawRecordCount": 458,
+  "uniqueRecordCount": 457,
   "duplicateRowsRemoved": [
     {
       "sheet": "2026",
       "row": 82
     }
   ],
-  "totalVolumes": 68354,
-  "analysisRecordCount": 452,
-  "analysisTotalVolumes": 67373,
+  "totalVolumes": 68377,
+  "analysisRecordCount": 454,
+  "analysisTotalVolumes": 67396,
   "analysisExcludedPeriods": [
     "2024-08",
     "2024-09"
@@ -117,8 +117,8 @@
       "volumes": 4481
     },
     "2026-06": {
-      "trips": 26,
-      "volumes": 2443
+      "trips": 28,
+      "volumes": 2466
     }
   },
   "manualStopMappings": [
