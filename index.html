@@ -41,46 +41,6 @@
       </div>
     </section>
 
-    <section class="filter-bar" aria-label="Filtros">
-      <div class="filter-title">
-        <div>
-          <strong>Filtrar dados</strong>
-          <span>Os indicadores abaixo mudam automaticamente.</span>
-        </div>
-        <button class="filter-toggle" id="filterToggle" type="button" aria-expanded="false" aria-controls="filterControls">
-          <span>Filtros</span>
-          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>
-        </button>
-      </div>
-      <div class="filter-controls" id="filterControls">
-        <label class="field">
-          <span>Mês</span>
-          <select id="monthFilter">
-            <option value="all">Ano inteiro</option>
-          </select>
-        </label>
-        <label class="field">
-          <span>Destino</span>
-          <select id="destinationFilter">
-            <option value="all">Todos os destinos</option>
-          </select>
-        </label>
-        <fieldset class="field year-field">
-          <legend>Anos</legend>
-          <div class="year-options" id="yearOptions"></div>
-        </fieldset>
-        <label class="fair-option" title="Opcional: limita os anos anteriores ao mesmo dia alcançado por 2026.">
-          <input type="checkbox" id="fairComparison">
-          <span class="check-box"></span>
-          <span>Mesmo período<small id="fairComparisonHint">Até o dia atual da base</small></span>
-        </label>
-        <button class="reset-button" id="resetFilters" type="button">Limpar</button>
-      </div>
-      <div class="active-filters" id="activeFilters" aria-live="polite"></div>
-    </section>
-
-    <section class="notice" id="coverageNotice" aria-live="polite"></section>
-
     <section class="year-comparison" aria-labelledby="yearComparisonTitle">
       <div class="comparison-heading">
         <div>
@@ -134,7 +94,7 @@
           <div>
             <span class="section-label">DESTINOS</span>
             <h2>Mais volumes</h2>
-            <p>Ranking no período filtrado.</p>
+            <p>Ranking combinado dos períodos A e B.</p>
           </div>
         </div>
         <div class="ranking-list" id="destinationRanking"></div>

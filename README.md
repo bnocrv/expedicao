@@ -47,10 +47,9 @@ e não precisa ser publicado.
   de transição na expedição.
 - No mês atual da base, os anos encerrados mostram o mês completo e o ano
   corrente mostra os dados até a última data disponível.
-- A opção `Mesmo período` pode limitar todos os anos ao mesmo dia quando for
-  necessária uma comparação proporcional.
 - O comparativo personalizado permite escolher um ano e vários meses em cada
   período (por exemplo, jan–mar/2025 contra out–dez/2025).
+- O ranking de destinos acompanha a combinação dos períodos A e B selecionados.
 
 ## Auditoria
 

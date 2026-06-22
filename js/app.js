@@ -19,13 +19,10 @@
   const shortMonths = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
   const colors = { 2024: "#a7a7ac", 2025: "#4a4a4f", 2026: "#ed1c24" };
   const number = new Intl.NumberFormat("pt-BR");
-  const dateFormatter = new Intl.DateTimeFormat("pt-BR", { timeZone: "UTC" });
   const latestRecord = records.reduce((latest, record) => record.date > latest.date ? record : latest, records[0]);
   const state = {
-    month: latestRecord.month,
     destination: "all",
     years: new Set(years),
-    fair: false,
     metric: "trips",
     calendarYear: latestRecord.year,
     calendarMonth: latestRecord.month,
@@ -36,18 +33,10 @@
   };
 
   const elements = {
-    month: document.querySelector("#monthFilter"),
-    destination: document.querySelector("#destinationFilter"),
-    yearOptions: document.querySelector("#yearOptions"),
-    fair: document.querySelector("#fairComparison"),
-    notice: document.querySelector("#coverageNotice"),
     calendarTitle: document.querySelector("#calendarTitle"),
     calendarSummary: document.querySelector("#calendarSummary"),
     calendarGrid: document.querySelector("#calendarGrid"),
     calendarList: document.querySelector("#calendarList"),
-    filterBar: document.querySelector(".filter-bar"),
-    filterToggle: document.querySelector("#filterToggle"),
-    activeFilters: document.querySelector("#activeFilters"),
     periodAYear: document.querySelector("#periodAYear"),
     periodBYear: document.querySelector("#periodBYear"),
     periodAMonths: document.querySelector("#periodAMonths"),
@@ -56,18 +45,6 @@
   };
 
   function initFilters() {
-    monthNames.forEach((month, index) => elements.month.add(new Option(month, index + 1)));
-    elements.month.value = String(state.month);
-
-    const destinations = [...new Set(records.flatMap(record => record.stops.map(stop => stop.destination)))].sort((a, b) => a.localeCompare(b, "pt-BR"));
-    destinations.forEach(destination => elements.destination.add(new Option(destination, destination)));
-
-    years.forEach(year => {
-      const label = document.createElement("label");
-      label.innerHTML = `<input type="checkbox" value="${year}" checked><span>${year}</span>`;
-      elements.yearOptions.append(label);
-    });
-
     [elements.periodAYear, elements.periodBYear].forEach(select => {
       years.forEach(year => select.add(new Option(year, year)));
     });
@@ -101,26 +78,6 @@
 
   function isTransitionPeriod(year, month) {
     return year === 2024 && [8, 9].includes(Number(month));
-  }
-
-  function unavailablePeriodReason(year, month) {
-    if (month === "all") return null;
-    const numericMonth = Number(month);
-    if (isTransitionPeriod(year, numericMonth)) return "transition";
-    if (year === 2024 && numericMonth < 4) return "before-base";
-    if (year === latestRecord.year && numericMonth > latestRecord.month) return "future";
-    return null;
-  }
-
-  function selectedRecords({ ignoreMonth = false, ignoreDestination = false } = {}) {
-    return records.filter(record => {
-      if (isTransitionPeriod(record.year, record.month)) return false;
-      if (!state.years.has(record.year)) return false;
-      if (!ignoreMonth && state.month !== "all" && record.month !== Number(state.month)) return false;
-      if (!ignoreDestination && state.destination !== "all" && !record.stops.some(stop => stop.destination === state.destination)) return false;
-      if (state.fair && state.month !== "all" && Number(state.month) === latestRecord.month && record.year < latestRecord.year && record.day > latestRecord.day) return false;
-      return true;
-    });
   }
 
   function visibleStops(record) {
@@ -295,6 +252,12 @@
   function renderComparison() {
     updateYearSummary();
     drawComparison();
+    const combinedRecords = [...new Map(
+      [comparisonPeriod("a"), comparisonPeriod("b")]
+        .flatMap(period => period.records)
+        .map(record => [record.id, record])
+    ).values()];
+    updateRanking(combinedRecords);
   }
 
   function roundRect(ctx, x, y, width, height, radius, fill) {
@@ -570,49 +533,10 @@
       : `<div class="calendar-list-empty">Nenhum carregamento registrado neste mês.</div>`;
   }
 
-  function updateActiveFilters() {
-    const period = state.month === "all" ? "Ano inteiro" : monthNames[Number(state.month) - 1];
-    const destination = state.destination === "all" ? "Todos os destinos" : state.destination;
-    const selectedYears = [...state.years].sort().join(", ");
-    elements.activeFilters.innerHTML = `
-      <span class="filter-chip">${escapeHtml(period)}</span>
-      <span class="filter-chip">${escapeHtml(destination)}</span>
-      <span class="filter-chip">${escapeHtml(selectedYears)}</span>
-      ${state.fair ? `<span class="filter-chip">Mesmo período</span>` : ""}`;
-  }
-
-  function updateCoverage() {
-    const selectedMonth = state.month === "all" ? null : Number(state.month);
-    const messages = [];
-    if (state.years.has(2024)) messages.push("Agosto e setembro de 2024 estão em branco por motivo de transição na expedição e não entram nas análises.");
-    if (state.years.has(latestRecord.year) && (!selectedMonth || selectedMonth >= latestRecord.month)) messages.push(`Os dados de ${latestRecord.year} vão até ${dateFormatter.format(parseDate(latestRecord.date))}.`);
-    if (state.fair && selectedMonth === latestRecord.month) {
-      messages.push(`Comparação equivalente aplicada até o dia ${latestRecord.day}.`);
-    } else if (selectedMonth === latestRecord.month && state.years.has(latestRecord.year)) {
-      messages.push(`Os anos anteriores mostram o mês completo; ${latestRecord.year} está em andamento até o dia ${latestRecord.day}.`);
-    }
-    elements.notice.textContent = messages.join(" ");
-    elements.notice.classList.toggle("visible", messages.length > 0);
-  }
-
-  function updateTitles() {
-    document.querySelector("#fairComparisonHint").textContent = state.month === latestRecord.month ? `Limita os anos ao dia ${latestRecord.day}` : "Disponível para o mês atual da base";
-    elements.fair.disabled = state.month === "all" || Number(state.month) !== latestRecord.month;
-    if (elements.fair.disabled && state.fair) {
-      state.fair = false;
-      elements.fair.checked = false;
-    }
-  }
-
   function render() {
-    updateTitles();
-    const filtered = selectedRecords();
     renderComparison();
     drawTrend();
-    updateRanking(filtered);
     updateInsights();
-    updateCoverage();
-    updateActiveFilters();
     renderCalendar();
   }
 
@@ -639,25 +563,6 @@
     renderCalendar();
   }
 
-  elements.month.addEventListener("change", event => {
-    state.month = event.target.value === "all" ? "all" : Number(event.target.value);
-    if (state.month !== "all") {
-      state.calendarMonth = Number(state.month);
-      state.calendarYear = latestRecord.year;
-    }
-    render();
-  });
-  elements.destination.addEventListener("change", event => { state.destination = event.target.value; render(); });
-  elements.yearOptions.addEventListener("change", event => {
-    const year = Number(event.target.value);
-    event.target.checked ? state.years.add(year) : state.years.delete(year);
-    if (!state.years.size) {
-      event.target.checked = true;
-      state.years.add(year);
-    }
-    render();
-  });
-  elements.fair.addEventListener("change", event => { state.fair = event.target.checked; render(); });
   function isComparisonMonthAvailable(year, month) {
     if (year === 2024 && (month < 4 || isTransitionPeriod(year, month))) return false;
     if (year === latestRecord.year && month > latestRecord.month) return false;
@@ -691,36 +596,12 @@
   elements.periodBYear.addEventListener("change", event => { comparisonState.b.year = Number(event.target.value); syncComparisonMonthAvailability("b"); renderComparison(); });
   elements.periodAMonths.addEventListener("change", event => updateComparisonMonths("a", event));
   elements.periodBMonths.addEventListener("change", event => updateComparisonMonths("b", event));
-  elements.filterToggle.addEventListener("click", () => {
-    const open = elements.filterBar.classList.toggle("open");
-    elements.filterToggle.setAttribute("aria-expanded", String(open));
-  });
   document.querySelector(".metric-toggle").addEventListener("click", event => {
     const button = event.target.closest("button[data-metric]");
     if (!button) return;
     state.metric = button.dataset.metric;
     document.querySelectorAll(".metric-toggle button").forEach(item => item.classList.toggle("active", item === button));
-    drawComparison(selectedRecords());
-  });
-  document.querySelector("#resetFilters").addEventListener("click", () => {
-    state.month = latestRecord.month;
-    state.destination = "all";
-    state.years = new Set(years);
-    state.fair = false;
-    state.calendarYear = latestRecord.year;
-    state.calendarMonth = latestRecord.month;
-    elements.month.value = String(state.month);
-    elements.destination.value = "all";
-    elements.fair.checked = false;
-    elements.yearOptions.querySelectorAll("input").forEach(input => input.checked = true);
-    comparisonState.a = { year: latestRecord.year, months: new Set([latestRecord.month]) };
-    comparisonState.b = { year: years.length > 1 ? years[years.length - 2] : latestRecord.year, months: new Set([latestRecord.month]) };
-    elements.periodAYear.value = String(comparisonState.a.year);
-    elements.periodBYear.value = String(comparisonState.b.year);
-    [[elements.periodAMonths, "a"], [elements.periodBMonths, "b"]].forEach(([container, key]) => {
-      syncComparisonMonthAvailability(key);
-    });
-    render();
+    drawComparison();
   });
   document.querySelector("#calendarPrev").addEventListener("click", () => moveCalendar(-1));
   document.querySelector("#calendarNext").addEventListener("click", () => moveCalendar(1));
@@ -734,7 +615,7 @@
   window.addEventListener("resize", () => {
     clearTimeout(resizeTimer);
     resizeTimer = setTimeout(() => {
-      drawComparison(selectedRecords());
+      drawComparison();
       drawTrend();
     }, 120);
   });
