@@ -84,15 +84,29 @@
     <section class="year-comparison" aria-labelledby="yearComparisonTitle">
       <div class="comparison-heading">
         <div>
-          <span class="section-label">NÚMEROS POR ANO</span>
-          <h2 id="yearComparisonTitle">Junho de 2024, 2025 e 2026</h2>
-          <p id="yearComparisonDescription">Meses completos nos anos encerrados e mês atual até a última data disponível.</p>
+          <span class="section-label">COMPARAÇÃO DE PERÍODOS</span>
+          <h2 id="yearComparisonTitle">Compare os períodos desejados</h2>
+          <p id="yearComparisonDescription">Escolha um ano e quantos meses quiser em cada período.</p>
         </div>
         <div class="comparison-guide">
           <span><i class="guide-cars"></i> Carros</span>
           <span><i class="guide-volumes"></i> Volumes</span>
         </div>
       </div>
+      <div class="period-comparison-controls">
+        <fieldset class="period-card period-a">
+          <legend>Período A</legend>
+          <label class="field"><span>Ano</span><select id="periodAYear"></select></label>
+          <div class="period-months" id="periodAMonths" aria-label="Meses do período A"></div>
+        </fieldset>
+        <div class="versus-badge" aria-hidden="true">VS</div>
+        <fieldset class="period-card period-b">
+          <legend>Período B</legend>
+          <label class="field"><span>Ano</span><select id="periodBYear"></select></label>
+          <div class="period-months" id="periodBMonths" aria-label="Meses do período B"></div>
+        </fieldset>
+      </div>
+      <div class="period-summary" id="periodSummary" aria-live="polite"></div>
       <div class="year-summary-grid" id="yearSummary"></div>
     </section>
 
@@ -100,9 +114,9 @@
       <article class="panel comparison-panel">
         <div class="panel-header">
           <div>
-            <span class="section-label">COMPARAÇÃO DIRETA</span>
-            <h2 id="comparisonTitle">Junho por ano</h2>
-            <p>O gráfico repete os números acima para facilitar a comparação visual.</p>
+            <span class="section-label">VISUALIZAÇÃO DO COMPARATIVO</span>
+            <h2 id="comparisonTitle">Resultado dos períodos selecionados</h2>
+            <p>O gráfico representa os mesmos números dos cartões acima.</p>
           </div>
           <div class="metric-toggle" aria-label="Métrica do gráfico">
             <button class="active" type="button" data-metric="trips">Carros</button>

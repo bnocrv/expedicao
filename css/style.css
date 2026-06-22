@@ -382,6 +382,30 @@ fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
   font-size: 11px;
 }
 
+.period-comparison-controls {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  gap: 14px;
+  align-items: center;
+  margin: 18px 0 10px;
+}
+.period-card { min-width: 0; margin: 0; padding: 14px; border: 1px solid #e2e6e3; border-radius: 8px; background: #f8f9f8; }
+.period-card legend { padding: 0 6px; font-size: 12px; font-weight: 800; color: #17231d; }
+.period-card .field { display: grid; min-width: 0; grid-template-columns: 42px minmax(0, 1fr); align-items: center; gap: 8px; }
+.period-card .field > span { font-size: 11px; font-weight: 700; color: #68716c; }
+.period-card select { width: 100%; min-width: 0; max-width: 100%; }
+.period-months { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; margin-top: 10px; }
+.period-months label { position: relative; cursor: pointer; }
+.period-months input { position: absolute; opacity: 0; pointer-events: none; }
+.period-months span { display: block; padding: 6px 2px; border: 1px solid #dce1de; border-radius: 5px; background: #fff; color: #68716c; font-size: 10px; font-weight: 700; text-align: center; }
+.period-months input:checked + span { border-color: #ed1c24; background: #ed1c24; color: #fff; }
+.period-months input:disabled + span { cursor: not-allowed; opacity: .42; background: #eef0ee; }
+.period-months input:focus-visible + span { outline: 2px solid #17231d; outline-offset: 2px; }
+.versus-badge { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: #17231d; color: #fff; font-size: 10px; font-weight: 900; }
+.period-summary { min-height: 20px; color: #68716c; font-size: 12px; text-align: center; }
+.period-summary strong { color: #17231d; }
+
 .comparison-guide {
   display: flex;
   gap: 14px;
@@ -396,7 +420,7 @@ fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
 
 .year-summary-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -844,6 +868,10 @@ footer strong { color: white; }
 }
 
 @media (max-width: 680px) {
+  .period-comparison-controls { grid-template-columns: 1fr; }
+  .period-card { width: 100%; }
+  .versus-badge { margin: -3px auto; }
+  .period-months { grid-template-columns: repeat(4, minmax(0, 1fr)); }
   .header-inner, .footer-inner, main { width: calc(100% - 24px); }
   .site-header { height: 68px; }
   .brand img { width: 42px; height: 42px; }

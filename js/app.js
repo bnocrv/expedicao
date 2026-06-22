@@ -30,6 +30,10 @@
     calendarYear: latestRecord.year,
     calendarMonth: latestRecord.month,
   };
+  const comparisonState = {
+    a: { year: latestRecord.year, months: new Set([latestRecord.month]) },
+    b: { year: years.length > 1 ? years[years.length - 2] : latestRecord.year, months: new Set([latestRecord.month]) },
+  };
 
   const elements = {
     month: document.querySelector("#monthFilter"),
@@ -44,6 +48,11 @@
     filterBar: document.querySelector(".filter-bar"),
     filterToggle: document.querySelector("#filterToggle"),
     activeFilters: document.querySelector("#activeFilters"),
+    periodAYear: document.querySelector("#periodAYear"),
+    periodBYear: document.querySelector("#periodBYear"),
+    periodAMonths: document.querySelector("#periodAMonths"),
+    periodBMonths: document.querySelector("#periodBMonths"),
+    periodSummary: document.querySelector("#periodSummary"),
   };
 
   function initFilters() {
@@ -57,6 +66,17 @@
       const label = document.createElement("label");
       label.innerHTML = `<input type="checkbox" value="${year}" checked><span>${year}</span>`;
       elements.yearOptions.append(label);
+    });
+
+    [elements.periodAYear, elements.periodBYear].forEach(select => {
+      years.forEach(year => select.add(new Option(year, year)));
+    });
+    elements.periodAYear.value = String(comparisonState.a.year);
+    elements.periodBYear.value = String(comparisonState.b.year);
+    [[elements.periodAMonths, "a"], [elements.periodBMonths, "b"]].forEach(([container, key]) => {
+      container.innerHTML = shortMonths.map((month, index) => `
+        <label><input type="checkbox" value="${index + 1}" ${comparisonState[key].months.has(index + 1) ? "checked" : ""}><span>${month}</span></label>`).join("");
+      syncComparisonMonthAvailability(key);
     });
 
     const latestDate = parseDate(latestRecord.date);
@@ -141,115 +161,38 @@
     return `<span class="variation ${direction}">${signal}${change.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}% <small>vs. ${label}</small></span>`;
   }
 
-  function updateYearSummary(filtered) {
-    const selectedYears = [...state.years].sort();
-    const summary = selectedYears.map(year => {
-      const yearRecords = filtered.filter(record => record.year === year);
-      const volumes = yearRecords.reduce((sum, record) => sum + visibleVolume(record), 0);
-      return {
-        year,
-        unavailable: unavailablePeriodReason(year, state.month),
-        trips: yearRecords.length,
-        volumes,
-        average: yearRecords.length ? volumes / yearRecords.length : 0,
-        destinations: new Set(yearRecords.flatMap(record => visibleStops(record).map(stop => stop.destination))).size,
-      };
-    });
-    const period = state.month === "all" ? "Ano inteiro" : monthNames[Number(state.month) - 1];
-    const currentMonthInProgress = Number(state.month) === latestRecord.month &&
-      selectedYears.includes(latestRecord.year) &&
-      !state.fair;
-    document.querySelector("#yearComparisonTitle").textContent =
-      state.month === "all"
-        ? "Resultado de cada ano"
-        : state.fair && Number(state.month) === latestRecord.month
-          ? `${period} até o dia ${latestRecord.day}: ${selectedYears.join(", ").replace(/, ([^,]*)$/, " e $1")}`
-          : `${period} de ${selectedYears.join(", ").replace(/, ([^,]*)$/, " e $1")}`;
-    document.querySelector("#yearComparisonDescription").textContent =
-      state.month === "all"
-        ? "Totais disponíveis em cada ano, respeitando os períodos sem base."
-        : state.fair && Number(state.month) === latestRecord.month
-          ? `Todos os anos foram limitados ao dia ${latestRecord.day} para uma comparação justa.`
-          : currentMonthInProgress
-            ? `${period} completo nos anos encerrados; ${latestRecord.year} contém dados até o dia ${latestRecord.day}.`
-          : "Cada cartão mostra somente o mês e o ano indicados.";
-
+  function updateYearSummary() {
+    const summary = [comparisonPeriod("a"), comparisonPeriod("b")];
+    document.querySelector("#yearComparisonTitle").textContent = `${periodLabel(summary[0])} × ${periodLabel(summary[1])}`;
+    document.querySelector("#yearComparisonDescription").textContent = "Os cartões e o gráfico abaixo usam exatamente os dois períodos selecionados.";
     document.querySelector("#yearSummary").innerHTML = summary.map((item, index) => {
       const previous = summary[index - 1];
-      if (item.unavailable) {
-        const unavailableCopy = item.unavailable === "transition"
-          ? {
-              tag: "Transição",
-              title: "Sem dados comparáveis",
-              text: "Período em branco devido à transição na expedição.",
-              footer: "Agosto e setembro de 2024 não entram nas análises.",
-            }
-          : item.unavailable === "future"
-            ? {
-                tag: "Ainda não disponível",
-                title: "Mês ainda não registrado",
-                text: `A base de ${latestRecord.year} vai até ${monthNames[latestRecord.month - 1].toLowerCase()}.`,
-                footer: "Este período não é contabilizado como zero.",
-              }
-            : {
-                tag: "Fora da base",
-                title: "Sem registros disponíveis",
-                text: "A base de 2024 começa em abril.",
-                footer: "Este período não é contabilizado como zero.",
-              };
-        return `
-          <article class="year-card unavailable-year">
-            <header>
-              <div>
-                <span>${period}</span>
-                <strong>${item.year}</strong>
-              </div>
-              <span class="coverage-tag transition">${unavailableCopy.tag}</span>
-            </header>
-            <div class="unavailable-message">
-              <strong>${unavailableCopy.title}</strong>
-              <p>${unavailableCopy.text}</p>
-            </div>
-            <div class="year-card-footer">
-              <span>${unavailableCopy.footer}</span>
-            </div>
-          </article>`;
-      }
-      const incomplete = item.year === 2024 && state.month === "all"
-        ? `<span class="coverage-tag transition">Transição ago/set</span>`
-        : item.year === latestRecord.year && (state.month === "all" || Number(state.month) === latestRecord.month)
-          ? `<span class="coverage-tag current">Até dia ${latestRecord.day}</span>`
+      const includesCurrentMonth = item.year === latestRecord.year && item.months.includes(latestRecord.month);
+      const transition = item.year === 2024 && item.months.some(month => isTransitionPeriod(item.year, month));
+      const tag = includesCurrentMonth
+        ? `<span class="coverage-tag current">Até dia ${latestRecord.day}</span>`
+        : transition
+          ? `<span class="coverage-tag transition">Ago/set sem base</span>`
           : "";
-      const mixedCoverage = currentMonthInProgress && item.year === latestRecord.year;
-      const tripsVariation = mixedCoverage
-        ? `<span class="variation neutral">Mês em andamento</span>`
-        : previous?.unavailable
-          ? `<span class="variation neutral">Sem base comparável</span>`
-          : variationMarkup(item.trips, previous?.trips, previous?.year);
-      const volumesVariation = mixedCoverage
-        ? `<span class="variation neutral">Mês em andamento</span>`
-        : previous?.unavailable
-          ? `<span class="variation neutral">Sem base comparável</span>`
-          : variationMarkup(item.volumes, previous?.volumes, previous?.year);
       return `
-        <article class="year-card ${item.year === latestRecord.year ? "current-year" : ""}">
+        <article class="year-card ${item.key === "a" ? "current-year" : ""}">
           <header>
             <div>
-              <span>${period}</span>
-              <strong>${item.year}</strong>
+              <span>${item.label}</span>
+              <strong>${periodLabel(item)}</strong>
             </div>
-            ${incomplete}
+            ${tag}
           </header>
           <div class="year-main-numbers">
             <div class="year-number cars-number">
               <span>CARROS EXPEDIDOS</span>
               <strong>${number.format(item.trips)}</strong>
-              ${tripsVariation}
+              ${index === 0 ? `<span class="variation neutral">Período-base</span>` : variationMarkup(item.trips, previous.trips, "período A")}
             </div>
             <div class="year-number volumes-number">
               <span>VOLUMES EXPEDIDOS</span>
               <strong>${number.format(item.volumes)}</strong>
-              ${volumesVariation}
+              ${index === 0 ? `<span class="variation neutral">Período-base</span>` : variationMarkup(item.volumes, previous.volumes, "período A")}
             </div>
           </div>
           <div class="year-card-footer">
@@ -270,22 +213,39 @@
     return { context, width: rect.width, height: rect.height };
   }
 
-  function drawComparison(filtered) {
+  function comparisonPeriod(key) {
+    const period = comparisonState[key];
+    const filtered = records.filter(record =>
+      record.year === period.year &&
+      period.months.has(record.month) &&
+      !isTransitionPeriod(record.year, record.month) &&
+      (state.destination === "all" || record.stops.some(stop => stop.destination === state.destination))
+    );
+    const volumes = filtered.reduce((sum, record) => sum + visibleVolume(record), 0);
+    return {
+      key,
+      label: `Período ${key.toUpperCase()}`,
+      year: period.year,
+      months: [...period.months].sort((a, b) => a - b),
+      records: filtered,
+      trips: filtered.length,
+      volumes,
+      average: filtered.length ? volumes / filtered.length : 0,
+      destinations: new Set(filtered.flatMap(record => visibleStops(record).map(stop => stop.destination))).size,
+    };
+  }
+
+  function periodLabel(item) {
+    const months = item.months.map(month => shortMonths[month - 1]).join(", ");
+    return `${months}/${item.year}`;
+  }
+
+  function drawComparison() {
     const canvas = document.querySelector("#comparisonChart");
     const { context: ctx, width, height } = getCanvasContext(canvas);
-    const data = [...state.years].sort().map(year => {
-      const yearRecords = filtered.filter(record => record.year === year);
-      return {
-        year,
-        unavailable: unavailablePeriodReason(year, state.month),
-        value: unavailablePeriodReason(year, state.month)
-          ? null
-          : state.metric === "trips"
-            ? yearRecords.length
-            : yearRecords.reduce((sum, record) => sum + visibleVolume(record), 0),
-      };
-    });
-    const max = Math.max(...data.map(item => item.value).filter(value => value !== null), 1);
+    const periods = [comparisonPeriod("a"), comparisonPeriod("b")];
+    const data = periods.map(item => ({ ...item, value: item[state.metric] }));
+    const max = Math.max(...data.map(item => item.value), 1);
     const padding = { top: 22, right: 20, bottom: 40, left: 52 };
     const chartWidth = width - padding.left - padding.right;
     const chartHeight = height - padding.top - padding.bottom;
@@ -311,33 +271,30 @@
     const barWidth = Math.min(76, slot * .46);
     data.forEach((item, index) => {
       const x = padding.left + slot * index + (slot - barWidth) / 2;
-      if (item.value === null) {
-        ctx.textAlign = "center";
-        ctx.fillStyle = "#8a928e";
-        ctx.font = "700 10px Arial";
-        ctx.fillText("SEM DADOS", x + barWidth / 2, padding.top + chartHeight / 2);
-        ctx.fillStyle = "#68716c";
-        ctx.font = "600 11px Arial";
-        ctx.fillText(String(item.year), x + barWidth / 2, height - 14);
-        return;
-      }
       const barHeight = chartHeight * item.value / max;
       const y = padding.top + chartHeight - barHeight;
-      roundRect(ctx, x, y, barWidth, barHeight, 3, colors[item.year] || "#ed1c24");
+      roundRect(ctx, x, y, barWidth, barHeight, 3, item.key === "a" ? "#ed1c24" : "#4a4a4f");
       ctx.textAlign = "center";
       ctx.fillStyle = "#17231d";
       ctx.font = "700 11px Arial";
       ctx.fillText(number.format(item.value), x + barWidth / 2, Math.max(y - 9, 12));
       ctx.fillStyle = "#68716c";
       ctx.font = "600 11px Arial";
-      ctx.fillText(String(item.year), x + barWidth / 2, height - 14);
+      ctx.fillText(item.label, x + barWidth / 2, height - 14);
     });
 
     document.querySelector("#comparisonLegend").innerHTML = data.map(item =>
-      item.value === null
-        ? `<span class="legend-item"><i class="legend-dot unavailable-dot"></i>${item.year}: ${item.unavailable === "transition" ? "transição na expedição" : "sem dados disponíveis"}</span>`
-        : `<span class="legend-item"><i class="legend-dot" style="background:${colors[item.year]}"></i>${item.year}: ${number.format(item.value)} ${state.metric === "trips" ? "carros" : "volumes"}</span>`
+      `<span class="legend-item"><i class="legend-dot" style="background:${item.key === "a" ? "#ed1c24" : "#4a4a4f"}"></i>${item.label} · ${periodLabel(item)}: ${number.format(item.value)} ${state.metric === "trips" ? "carros" : "volumes"}</span>`
     ).join("");
+    const tripChange = percentageChange(periods[1].trips, periods[0].trips);
+    const volumeChange = percentageChange(periods[1].volumes, periods[0].volumes);
+    const formatChange = value => value === null ? "sem base" : `${value > 0 ? "+" : ""}${value.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
+    elements.periodSummary.innerHTML = `<strong>${periodLabel(periods[0])}</strong> × <strong>${periodLabel(periods[1])}</strong> · Período B: ${formatChange(tripChange)} em carros e ${formatChange(volumeChange)} em volumes.`;
+  }
+
+  function renderComparison() {
+    updateYearSummary();
+    drawComparison();
   }
 
   function roundRect(ctx, x, y, width, height, radius, fill) {
@@ -639,13 +596,6 @@
   }
 
   function updateTitles() {
-    const period = state.month === "all" ? "Ano inteiro" : monthNames[Number(state.month) - 1];
-    document.querySelector("#comparisonTitle").textContent =
-      state.fair && Number(state.month) === latestRecord.month
-        ? `${period} até o dia ${latestRecord.day} por ano`
-        : Number(state.month) === latestRecord.month
-          ? `${period}: anos completos x ${latestRecord.year} até dia ${latestRecord.day}`
-          : `${period} por ano`;
     document.querySelector("#fairComparisonHint").textContent = state.month === latestRecord.month ? `Limita os anos ao dia ${latestRecord.day}` : "Disponível para o mês atual da base";
     elements.fair.disabled = state.month === "all" || Number(state.month) !== latestRecord.month;
     if (elements.fair.disabled && state.fair) {
@@ -657,8 +607,7 @@
   function render() {
     updateTitles();
     const filtered = selectedRecords();
-    updateYearSummary(filtered);
-    drawComparison(filtered);
+    renderComparison();
     drawTrend();
     updateRanking(filtered);
     updateInsights();
@@ -709,6 +658,39 @@
     render();
   });
   elements.fair.addEventListener("change", event => { state.fair = event.target.checked; render(); });
+  function isComparisonMonthAvailable(year, month) {
+    if (year === 2024 && (month < 4 || isTransitionPeriod(year, month))) return false;
+    if (year === latestRecord.year && month > latestRecord.month) return false;
+    return records.some(record => record.year === year && record.month === month);
+  }
+  function syncComparisonMonthAvailability(key) {
+    const period = comparisonState[key];
+    const container = key === "a" ? elements.periodAMonths : elements.periodBMonths;
+    const inputs = [...container.querySelectorAll("input")];
+    inputs.forEach(input => {
+      const month = Number(input.value);
+      input.disabled = !isComparisonMonthAvailable(period.year, month);
+      if (input.disabled) period.months.delete(month);
+    });
+    if (!period.months.size) {
+      const fallback = inputs.filter(input => !input.disabled).at(-1);
+      if (fallback) period.months.add(Number(fallback.value));
+    }
+    inputs.forEach(input => input.checked = period.months.has(Number(input.value)));
+  }
+  function updateComparisonMonths(key, event) {
+    const month = Number(event.target.value);
+    event.target.checked ? comparisonState[key].months.add(month) : comparisonState[key].months.delete(month);
+    if (!comparisonState[key].months.size) {
+      event.target.checked = true;
+      comparisonState[key].months.add(month);
+    }
+    renderComparison();
+  }
+  elements.periodAYear.addEventListener("change", event => { comparisonState.a.year = Number(event.target.value); syncComparisonMonthAvailability("a"); renderComparison(); });
+  elements.periodBYear.addEventListener("change", event => { comparisonState.b.year = Number(event.target.value); syncComparisonMonthAvailability("b"); renderComparison(); });
+  elements.periodAMonths.addEventListener("change", event => updateComparisonMonths("a", event));
+  elements.periodBMonths.addEventListener("change", event => updateComparisonMonths("b", event));
   elements.filterToggle.addEventListener("click", () => {
     const open = elements.filterBar.classList.toggle("open");
     elements.filterToggle.setAttribute("aria-expanded", String(open));
@@ -731,6 +713,13 @@
     elements.destination.value = "all";
     elements.fair.checked = false;
     elements.yearOptions.querySelectorAll("input").forEach(input => input.checked = true);
+    comparisonState.a = { year: latestRecord.year, months: new Set([latestRecord.month]) };
+    comparisonState.b = { year: years.length > 1 ? years[years.length - 2] : latestRecord.year, months: new Set([latestRecord.month]) };
+    elements.periodAYear.value = String(comparisonState.a.year);
+    elements.periodBYear.value = String(comparisonState.b.year);
+    [[elements.periodAMonths, "a"], [elements.periodBMonths, "b"]].forEach(([container, key]) => {
+      syncComparisonMonthAvailability(key);
+    });
     render();
   });
   document.querySelector("#calendarPrev").addEventListener("click", () => moveCalendar(-1));

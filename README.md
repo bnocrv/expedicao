@@ -49,6 +49,8 @@ e não precisa ser publicado.
   corrente mostra os dados até a última data disponível.
 - A opção `Mesmo período` pode limitar todos os anos ao mesmo dia quando for
   necessária uma comparação proporcional.
+- O comparativo personalizado permite escolher um ano e vários meses em cada
+  período (por exemplo, jan–mar/2025 contra out–dez/2025).
 
 ## Auditoria
 

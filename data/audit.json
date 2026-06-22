@@ -1,20 +1,20 @@
 {
-  "rawRecordCount": 471,
-  "uniqueRecordCount": 470,
+  "rawRecordCount": 474,
+  "uniqueRecordCount": 473,
   "duplicateRowsRemoved": [
     {
       "sheet": "2026",
       "row": 82
     }
   ],
-  "totalVolumes": 69803,
-  "analysisRecordCount": 467,
-  "analysisTotalVolumes": 68822,
+  "totalVolumes": 70255,
+  "analysisRecordCount": 470,
+  "analysisTotalVolumes": 69274,
   "analysisExcludedPeriods": [
     "2024-08",
     "2024-09"
   ],
-  "latestDate": "2026-06-19",
+  "latestDate": "2026-06-22",
   "monthlyTotals": {
     "2024-04": {
       "trips": 10,
@@ -117,8 +117,8 @@
       "volumes": 4481
     },
     "2026-06": {
-      "trips": 41,
-      "volumes": 3892
+      "trips": 44,
+      "volumes": 4344
     }
   },
   "manualStopMappings": [
